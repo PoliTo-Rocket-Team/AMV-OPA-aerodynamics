@@ -11,7 +11,7 @@ This repository contains each team's developed scripts for the evalutation of ro
   - Each script file includes:
     - A detailed description of its purpose and parameters.
     - The date it was last modified.
-    - Each script folder includes an output CD file, providing the results for the evaluated aerodynamic coefficient.
+    - It shall also include the output CD file.
 
 ### Aerodynamic Coefficient Evaluation Scripts (`Evaluation_Scripts/`)
 - **Description**: Contains scripts and tools developed by the division to compute aerodynamic coefficients.
