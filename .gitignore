@@ -5,5 +5,5 @@
 Thumbs.db
 desktop.ini
 
-# Ignore chache file matlab
+# Ignore cache matlab files
 .asv
