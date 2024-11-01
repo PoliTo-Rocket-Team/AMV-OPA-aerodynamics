@@ -17,9 +17,9 @@ c = sqrt(1.4*R_gas*T_inf); % Sound Velocity
 n = 1/2; % Power Series Parameter
 M_inf = 1.2;
 V_inf = c*M_inf;
-Machs = [ 1.2 1.3 1.4 1.5 1.6 1.7 1.8]; % 1.9 2 2.2 2.4 2.6];
-DatMachs = [1.2 1.3 1.4 1.5 1.6 1.7 1.8 1.9 2 2.1 2.2 2.3 2.4 2.5 2.6];
-DatCds = [0.59 0.571 0.558 0.547 0.534 0.523 0.512 0.501 0.491 0.481 0.465 0.457 0.448 0.440 0.433];
+Machs = [1.2 1.3 1.4 1.5 1.6 1.7 1.8 1.9 2 ]; % 2.2 2.4 2.6];
+DatMachs = [1.2 1.3 1.4 1.5 1.6 1.7 1.8 1.9 2 2.1 2.2 2.3 2.4 2.5 2.6]; % Mach Number from MD Simulations
+DatCds = [0.59 0.571 0.558 0.547 0.534 0.523 0.512 0.501 0.491 0.481 0.465 0.457 0.448 0.440 0.433]; % Drag Coefficient for Given Mach Number --> Results of MD Simulation 
 Cdps = zeros(length(Machs),1);
 P_inf = 101325; % Freestream Pressure, Atmosferic Pressure
 P_inf_bar = P_inf/(100000);
@@ -42,7 +42,7 @@ ys = y(x);
 dy_by_dx = @(x) n*(R/L^n).*x.^(n-1);
 y_f = dy_by_dx(x);
 
-figure 
+figure(1) 
 plot(x,ys,"k","LineWidth",1)
 hold on
 plot(x,-ys,"k","LineWidth",1)
@@ -100,7 +100,7 @@ end
 
 % Method 1: Joining the Tangent Nodes --> Tangent Nodes are the Final Nodes (Red segments)
 
-figure
+figure(2)
 plot(x_t,y_t,"bo", "LineWidth",1)
 hold on
 plot(x_t,-y_t, "bo", "LineWidth",1)
@@ -141,10 +141,12 @@ for i = 1:S
     plot([x1;x2], [y(x1);y(x2)],'g','linewidth',1)
     plot([x1;x2], [-y(x1);-y(x2)],'g','linewidth',1)
 end
-
+hold off
 %%% Aerodynamic Method 
 
 % Barrowman Method + Expansion Waves 
+
+%%% Method Using Red Segments
 
 NU = @(M) (atan((M^2 - 1)^(1/2)*((g - 1)/(g + 1))^(1/2))*(g + 1)^(1/2))/(g - 1)^(1/2) - atan((M^2 - 1)^(1/2));
 dNU = @(M) (M*((g - 1)/(g + 1))^(1/2)*(g + 1)^(1/2))/((M^2 - 1)^(1/2)*(((M^2 - 1)*(g - 1))/(g + 1) + 1)*(g - 1)^(1/2)) - 1/(M*(M^2 - 1)^(1/2));
@@ -154,7 +156,7 @@ for l = 1:length(Machs)
 M_inf = Machs(l);
 V_inf = c*M_inf;
 Cdp = 0;
-Cdwls = zeros(length(x_t)-1);
+Cdwls = zeros(length(x_t)-1,1);
 for k=1:length(x_t)-1
     theta = atan((y_t(k+1)-y_t(k))./(x_t(k+1)-x_t(k)));
     theta_deg = theta *(180/pi);
@@ -200,10 +202,10 @@ for k=1:length(x_t)-1
         Pcs(k) = PC;
         dpds2 = (B2/y_t(k))*((O1/O2)*sin(thetapr)-sin(theta))+(B2/B1)*(O1/O2)*dpds1;
         %eta = dpds2 * (x-x2)/((PC-P2)*cos(theta))
-        %P = @(x) (PC-(PC-P2)*exp(-dpds2 * (x-x_t(k))/((PC-P2)*cos(theta))));%pressure distribution on the frustrum
-        Pe = P2*((1+(M1^2)*((g-1)/2))/(1+(M2^2)*((g-1)/2)))^(g/(g-1));
-        %Fx = @(x) 2*pi.*sin(theta).*sin(theta).*x.*(PC-(PC-P2).*exp(-dpds2 .* (x-x_t(k))./((PC-P2).*cos(theta))));%drag force on the frustrum
-        Fx = @(x) 2*pi.*sin(theta).*sin(theta).*x.*Pe;
+        %P = @(x) (PC-(PC-P2)*exp(-dpds2*(x-x_t(k))/((PC-P2)*cos(theta)))); % Pressure Distribution on the Frustrum --> Barrowman Method  
+        Pe = P2*((1+(M1^2)*((g-1)/2))/(1+(M2^2)*((g-1)/2)))^(g/(g-1)); % Pressure Evaluated Assuming Isentropic Expansion
+        %Fx = @(x) 2*pi.*sin(theta).*sin(theta).*x.*(PC-(PC-P2).*exp(-dpds2 .* (x-x_t(k))./((PC-P2).*cos(theta)))); % Drag Force on the Frustrum
+        Fx = @(x) 2*pi.*sin(theta).*sin(theta).*x.*Pe; % Function to Evaluate Drag Force According to Barrowman
         Cdwl = (integral(Fx,x_t(k),x_t(k+1)))/(0.5*rho_inf*V_inf^2*A_ref); % Local Cd Component
 
         % Variables Update --> Closing the Loop
@@ -217,8 +219,11 @@ for k=1:length(x_t)-1
         xps = cat(2,xps,xl);
         Ps = cat(2,Ps,Pl);
     end
-    plot([x_n(k);x_n(k+1)], [y_n(k);y_n(k+1)],'g','linewidth',2)
-    plot([x_n(k);x_n(k+1)], [-y_n(k);-y_n(k+1)],'g','linewidth',2)
+    % figure
+    % plot([x_n(k);x_n(k+1)], [y_n(k);y_n(k+1)],'g','linewidth',2)
+    % hold on
+    % plot([x_n(k);x_n(k+1)], [-y_n(k);-y_n(k+1)],'g','linewidth',2)
+    % grid on
     thetapr = theta;
     Cdp = Cdp + Cdwl;
     Cdwls(k) = Cdwl;
@@ -227,46 +232,46 @@ end
 Cdps(l)=Cdp;
 Contribute = (Cdwls./Cdp).*100;
 
-figure
-plot(1:S,Mcs,'linewidth',2)
-title(M_inf)
-xlabel('frustrum n.')
-ylabel('equivalent mach')
-grid on
-
-figure
-plot(1:S,M2s,'linewidth',2)
-title(M_inf)
-xlabel('frustrum n.')
-ylabel('mach at the base (M2)')
-grid on
-
-figure
-plot(1:S,nu2s,'linewidth',2)
-title(M_inf)
-xlabel('frustrum n.')
-ylabel('nu function')
-grid on
-
-figure
-plot(xps,Ps,'linewidth',2)
-title(M_inf)
-xlabel('x')
-ylabel('Pressure (Pa)')
-grid on
-
-figure
-plot(1:S,Pcs,'linewidth',2)
-title(M_inf)
-xlabel('x')
-ylabel('equivalent pressure (Pa)')
-grid on
+% figure
+% plot(1:S,Mcs,'linewidth',2)
+% title(M_inf)
+% xlabel('frustrum n.')
+% ylabel('equivalent mach')
+% grid on
+% 
+% figure
+% plot(1:S,M2s,'linewidth',2)
+% title(M_inf)
+% xlabel('frustrum n.')
+% ylabel('mach at the base (M2)')
+% grid on
+% 
+% figure
+% plot(1:S,nu2s,'linewidth',2)
+% title(M_inf)
+% xlabel('frustrum n.')
+% ylabel('nu function')
+% grid on
+% 
+% figure
+% plot(xps,Ps,'linewidth',2)
+% title(M_inf)
+% xlabel('x')
+% ylabel('Pressure (Pa)')
+% grid on
+% 
+% figure
+% plot(1:S,Pcs,'linewidth',2)
+% title(M_inf)
+% xlabel('x')
+% ylabel('equivalent pressure (Pa)')
+% grid on
 
 Ps = ones(1,100);
 xps = ones(1,100);
 end
 
-figure
+figure(3)
 plot(Machs,Cdps,'linewidth',2)
 hold on
 plot(DatMachs, DatCds,'linewidth',2)
@@ -276,7 +281,7 @@ ylabel('Pressure drag coefficient')
 grid on
 hold off
 
-figure
+figure(4)
 plot(1:(length(x_t)-1),Contribute,'linewidth',2)
 xlabel('Frustrum n.')
 ylabel('Cd contribution (Percentage)')
